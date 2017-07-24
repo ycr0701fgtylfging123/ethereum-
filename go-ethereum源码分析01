@@ -1,5 +1,110 @@
-//go-ethereum/cmd/geth/main.go
+go-ethereum/cmd/geth/main.go
+
+app = utils.NewApp(gitCommit, "the go-ethereum command line interface")
+
+// NewApp creates an app with sane defaults.
+func NewApp(gitCommit, usage string) *cli.App {
+	app := cli.NewApp()
+	app.Name = filepath.Base(os.Args[0])
+	app.Author = ""
+	//app.Authors = nil
+	app.Email = ""
+	app.Version = params.Version
+	if gitCommit != "" {
+		app.Version += "-" + gitCommit[:8]
+	}
+	app.Usage = usage
+	return app
+}
+
+// NewApp creates a new cli Application with some reasonable defaults for Name,
+// Usage, Version and Action.
+func NewApp() *App {
+	return &App{
+		Name:         filepath.Base(os.Args[0]),
+		HelpName:     filepath.Base(os.Args[0]),
+		Usage:        "A new cli application",
+		UsageText:    "",
+		Version:      "0.0.0",
+		BashComplete: DefaultAppComplete,
+		Action:       helpCommand.Action,
+		Compiled:     compileTime(),
+		Writer:       os.Stdout,
+	}
+}
+
+// App is the main structure of a cli application. It is recommended that
+// an app be created with the cli.NewApp() function
+type App struct {
+	// The name of the program. Defaults to path.Base(os.Args[0])
+	Name string
+	// Full name of command for help, defaults to Name
+	HelpName string
+	// Description of the program.
+	Usage string
+	// Text to override the USAGE section of help
+	UsageText string
+	// Description of the program argument format.
+	ArgsUsage string
+	// Version of the program
+	Version string
+	// Description of the program
+	Description string
+	// List of commands to execute
+	Commands []Command
+	// List of flags to parse
+	Flags []Flag
+	// Boolean to enable bash completion commands
+	EnableBashCompletion bool
+	// Boolean to hide built-in help command
+	HideHelp bool
+	// Boolean to hide built-in version flag and the VERSION section of help
+	HideVersion bool
+	// Populate on app startup, only gettable through method Categories()
+	categories CommandCategories
+	// An action to execute when the bash-completion flag is set
+	BashComplete BashCompleteFunc
+	// An action to execute before any subcommands are run, but after the context is ready
+	// If a non-nil error is returned, no subcommands are run
+	Before BeforeFunc
+	// An action to execute after any subcommands are run, but after the subcommand has finished
+	// It is run even if Action() panics
+	After AfterFunc
+
+	// The action to execute when no subcommands are specified
+	// Expects a `cli.ActionFunc` but will accept the *deprecated* signature of `func(*cli.Context) {}`
+	// *Note*: support for the deprecated `Action` signature will be removed in a future version
+	Action interface{}
+
+	// Execute this function if the proper command cannot be found
+	CommandNotFound CommandNotFoundFunc
+	// Execute this function if an usage error occurs
+	OnUsageError OnUsageErrorFunc
+	// Compilation date
+	Compiled time.Time
+	// List of all authors who contributed
+	Authors []Author
+	// Copyright of the binary if any
+	Copyright string
+	// Name of Author (Note: Use App.Authors, this is deprecated)
+	Author string
+	// Email of Author (Note: Use App.Authors, this is deprecated)
+	Email string
+	// Writer writer to write output to
+	Writer io.Writer
+	// ErrWriter writes error output
+	ErrWriter io.Writer
+	// Other custom info
+	Metadata map[string]interface{}
+
+	didSetup bool
+}
+
+
+
 // geth is the official command-line client for Ethereum.
+
+
 
 package main
 
@@ -10,17 +115,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"         
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/console"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/internal/debug"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/node"
+	"github.com/ethereum/go-ethereum/accounts"           //账户
+	"github.com/ethereum/go-ethereum/accounts/keystore"  //权限
+	"github.com/ethereum/go-ethereum/cmd/utils"          //实用工具
+	"github.com/ethereum/go-ethereum/common"             //公用
+	"github.com/ethereum/go-ethereum/console"            //终端
+	"github.com/ethereum/go-ethereum/eth"                
+	"github.com/ethereum/go-ethereum/ethclient"            
+	"github.com/ethereum/go-ethereum/internal/debug"     //调试
+	"github.com/ethereum/go-ethereum/log"                //日志
+	"github.com/ethereum/go-ethereum/metrics"            //度量
+	"github.com/ethereum/go-ethereum/node"               //节点
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -30,6 +135,7 @@ const (
 
 var (
 	// Git SHA1 commit hash of the release (set via linker flags)
+	// SHA1是一种安全算法，主要用来验证数据的完整性。 
 	gitCommit = ""
 	// Ethereum address of the Geth release oracle.
 	relOracle = common.HexToAddress("0xfa7b9770ca4cb04296cac84f37736d4041251cdf")
